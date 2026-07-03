@@ -15,8 +15,11 @@ const commands = {
   usage: usageCommand,
 };
 
-if (!process.env.DISCORD_TOKEN) {
-  throw new Error('DISCORD_TOKEN is missing. Add it to .env before starting the bot.');
+const discordToken = process.env.DISCORD_TOKEN;
+
+if (!discordToken) {
+  console.error('DISCORD_TOKEN is missing. Add it to .env before starting the bot.');
+  process.exit(1);
 }
 
 const client = new Client({
@@ -48,7 +51,10 @@ client.on('messageCreate', async (message) => {
   }
 });
 
-client.login(process.env.DISCORD_TOKEN);
+client.login(discordToken).catch((error) => {
+  console.error('Failed to log in to Discord:', error);
+  process.exit(1);
+});
 
 function startAlertWatcher() {
   const channelId = process.env.ALERT_CHANNEL_ID;

@@ -61,7 +61,7 @@ class Application {
     if (status === 'simulating') {
       bannerContainer.innerHTML = `
         <div class="offline-banner-alert">
-          <span>⚠️ Running in Demo Simulation Mode. WebSocket connection to <strong>ws://localhost:8000/ws</strong> was unreachable.</span>
+          <span>⚠️ Running in Demo Simulation Mode. WebSocket connection to <strong>${api.wsUrl}</strong> was unreachable.</span>
           <button id="banner-reconnect-btn">Retry Connection</button>
         </div>
       `;

@@ -8,13 +8,30 @@ import { simulator } from './simulator.js';
 
 class ApiService {
   constructor() {
-    this.wsUrl = 'ws://localhost:4000';
-    this.baseUrl = 'http://localhost:4000/';
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
+    this.baseUrl = this.normalizeBaseUrl(backendUrl);
+    this.apiUrl = this.baseUrl;
+    this.wsUrl = this.toWebSocketUrl(this.baseUrl);
     this.ws = null;
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 3;
     this.reconnectDelay = 3000; // 3 seconds
     this.isManualDisconnect = false;
+  }
+
+  normalizeBaseUrl(url) {
+    return String(url || 'http://localhost:4000').trim().replace(/\/$/, '');
+  }
+
+  toWebSocketUrl(url) {
+    const normalized = this.normalizeBaseUrl(url);
+    if (normalized.startsWith('https://')) {
+      return `wss://${normalized.slice(8)}`;
+    }
+    if (normalized.startsWith('http://')) {
+      return `ws://${normalized.slice(7)}`;
+    }
+    return normalized;
   }
 
   /**
@@ -99,19 +116,19 @@ class ApiService {
 
     try {
       // Fetch devices
-      const devicesRes = await fetch(`${this.apiUrl}/devices`);
+      const devicesRes = await fetch(`${this.baseUrl}/devices`);
       const devices = await devicesRes.json();
       
       // Fetch power logs
-      const powerRes = await fetch(`${this.apiUrl}/power`);
+      const powerRes = await fetch(`${this.baseUrl}/power`);
       const powerData = await powerRes.json();
 
       // Fetch alerts
-      const alertsRes = await fetch(`${this.apiUrl}/alerts`);
+      const alertsRes = await fetch(`${this.baseUrl}/alerts`);
       const alerts = await alertsRes.json();
 
       // Fetch timeline logs
-      const historyRes = await fetch(`${this.apiUrl}/history`);
+      const historyRes = await fetch(`${this.baseUrl}/history`);
       const history = await historyRes.json();
 
       store.setState({
@@ -146,7 +163,7 @@ class ApiService {
 
     // Direct API route
     try {
-      const res = await fetch(`${this.apiUrl}/devices/${deviceId}`, {
+      const res = await fetch(`${this.baseUrl}/devices/${encodeURIComponent(deviceId)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, operator: operatorName })

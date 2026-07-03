@@ -193,11 +193,13 @@ class DeviceSimulator {
     // Create a new timeline event
     const targetDevice = state.devices.find(d => d.id === deviceId);
     const actionColor = status === 'on' ? 'var(--success-color)' : 'var(--text-muted)';
+    const deviceName = targetDevice?.name || deviceId;
+    const roomName = targetDevice?.room || 'Unknown Room';
     const newEvent = {
       id: `evt_${Date.now()}`,
       timestamp: timeStr,
       type: 'device_toggle',
-      description: `<span class="operator-highlight">${operatorName}</span> turned <span style="color:${actionColor};font-weight:600;">${status.toUpperCase()}</span> ${targetDevice.name} in ${targetDevice.room}`
+      description: `<span class="operator-highlight">${operatorName}</span> turned <span style="color:${actionColor};font-weight:600;">${status.toUpperCase()}</span> ${deviceName} in ${roomName}`
     };
 
     // Update state
@@ -248,7 +250,7 @@ class DeviceSimulator {
     const currentHour = new Date().getHours();
     
     const triggerDevice = state.devices.find(d => d.id === triggerDeviceId);
-    const room = triggerDevice.room;
+    const room = triggerDevice?.room || 'Unknown Room';
     
     let updatedAlerts = [...state.alerts];
     let newAlertRaised = false;
