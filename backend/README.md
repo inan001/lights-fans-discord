@@ -3,7 +3,7 @@
 Single source of truth for office device state. Serves a REST API and a
 WebSocket stream consumed by the **web dashboard** and the **Discord bot**.
 
-Generates 18 simulated devices (2 fans + 3 lights per room × 3 rooms) and
+Generates 15 simulated devices (2 fans + 3 lights per room × 3 rooms) and
 randomly flips 1–3 of them every 15–30 seconds so the rest of the stack
 has live data to display.
 
@@ -26,7 +26,7 @@ Default port: **4000**.  Override: `PORT=5000 npm start`
 ## Sample `curl` Commands
 
 ```bash
-# 1. All 18 devices
+# 1. All 15 devices
 curl http://localhost:4000/devices
 
 # 2. Devices in a specific room (drawing | work1 | work2)
@@ -44,7 +44,7 @@ curl http://localhost:4000/alerts
 ## Endpoints
 
 ### `GET /devices`
-Returns the full array of 18 device objects.
+Returns the full array of 15 device objects.
 
 ```json
 [
@@ -124,7 +124,7 @@ so the Discord bot can dedup with a simple `Set`.
 Liveness check.
 
 ```json
-{ "ok": true, "device_count": 18, "on_count": 11, "server_time": "..." }
+{ "ok": true, "device_count": 15, "on_count": 11, "server_time": "..." }
 ```
 
 ---
@@ -139,7 +139,7 @@ Connect to `ws://localhost:4000`.
 Message format:
 
 ```json
-{ "type": "devices", "devices": [ /* 18 device objects */ ] }
+{ "type": "devices", "devices": [ /* 15 device objects */ ] }
 ```
 
 Quick test:
@@ -158,7 +158,7 @@ backend/
 ├── README.md
 └── src/
     ├── server.js      — Express + WebSocket + simulator wiring (entry point)
-    ├── devices.js     — 18-device seed & flipDevice() helper
+    ├── devices.js     — 15-device seed & flipDevice() helper
     ├── simulator.js   — randomised 15–30 s flip loop
     ├── alerts.js      — pure after_hours + stuck_on rule evaluator
     └── routes.js      — Express router factory (all read-only endpoints)
@@ -169,7 +169,7 @@ backend/
 ## Notes for the Team
 
 - **CORS is wide open** — fine for a hackathon LAN demo, not for production.
-- **State is in-memory** — a server restart reseeds all 18 devices.
+- **State is in-memory** — a server restart reseeds all 15 devices.
 - **Alert IDs are stable** — safe to use as dedup keys in the bot's `Set`.
 - **Server time, not client time** — `after_hours` uses the backend's local
   clock. If your demo machine is on a weird timezone, set the `TZ` env var
