@@ -1,0 +1,19 @@
+{
+  "name": "build-a-discord-bot-using-discord",
+  "version": "1.0.0",
+  "description": "Discord office assistant bot backed by live office data.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "check": "node --check src/index.js && node --check src/backendClient.js && node --check src/humanize.js && node --check src/commands/status.js && node --check src/commands/room.js && node --check src/commands/usage.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "discord.js": "^14.26.4",
+    "dotenv": "^17.4.2",
+    "node-fetch": "^3.3.2"
+  }
+}
