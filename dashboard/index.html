@@ -478,6 +478,16 @@ function backendIdToDashId(bid) {
   const prefix  = ROOM_MAP[roomKey].toLowerCase().replace(/\s+/g, '_');
   return `${prefix}_${type}_${idx}`;
 }
+function dashIdToBackendId(dashId) {
+  const parts = dashId.split('_');
+  const type = parts.at(-2);
+  const idx = parts.at(-1);
+  const roomPrefix = parts.slice(0, -2).join('_');
+  const roomKey = Object.entries(ROOM_MAP)
+    .find(([, label]) => label.toLowerCase().replace(/\s+/g, '_') === roomPrefix)?.[0];
+
+  return roomKey ? `${roomKey}-${type}-${idx}` : dashId;
+}
 function mapBackendDevice(bd) {
   const dashId   = backendIdToDashId(bd.id);
   const roomName = ROOM_MAP[bd.room] || bd.room;
@@ -577,14 +587,32 @@ const api = (function() {
   return {
     init() { manual = false; attempts = 0; connect(); },
     wsUrl: WS_URL,
-    toggleDevice(deviceId, status, operator) {
+    async toggleDevice(deviceId, status, operator) {
       const { connectionStatus } = store.getState();
       if (connectionStatus === 'simulating') {
         simulator.toggleDevice(deviceId, status, operator);
         return;
       }
-      // Toggle via simulator fallback (backend has no toggle endpoint)
-      simulator.toggleDevice(deviceId, status, operator);
+      try {
+        const response = await fetch(`${API_URL}/devices/${dashIdToBackendId(deviceId)}/toggle`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ status, operator })
+        });
+
+        if (!response.ok) throw new Error(`Toggle failed with ${response.status}`);
+
+        const body = await response.json();
+        if (body.device) {
+          const updatedDevice = mapBackendDevice(body.device);
+          store.setState(prev => ({
+            devices: prev.devices.map(dev => dev.id === updatedDevice.id ? updatedDevice : dev)
+          }));
+        }
+      } catch (e) {
+        console.warn('Backend toggle failed; refreshing live state.', e);
+        fetchAll();
+      }
     }
   };
 })();

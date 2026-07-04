@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { Client, GatewayIntentBits } from 'discord.js';
+import { Client, Events, GatewayIntentBits } from 'discord.js';
 import { backendClient } from './backendClient.js';
 import { formatAlert } from './humanize.js';
 import { statusCommand } from './commands/status.js';
@@ -30,7 +30,7 @@ const client = new Client({
   ],
 });
 
-client.once('ready', () => {
+client.once(Events.ClientReady, () => {
   console.log(`Office bot is online as ${client.user.tag}`);
   startAlertWatcher();
 });

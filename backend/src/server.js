@@ -60,7 +60,10 @@ const app = express();
 app.use(cors());          // wide-open CORS — fine for a hackathon LAN demo
 app.use(express.json());
 
-app.use("/", buildRoutes(devices, () => currentAlerts));
+app.use("/", buildRoutes(devices, () => currentAlerts, updatedDevices => {
+  currentAlerts = evaluateAlerts(updatedDevices);
+  broadcastDevices();
+}));
 
 // 404 fallback — keeps the error shape consistent for consumers
 app.use((req, res) => {

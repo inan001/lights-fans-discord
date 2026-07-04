@@ -61,6 +61,34 @@ Returns the full array of 15 device objects.
 
 ---
 
+### `POST /devices/:id/toggle`
+Updates one device in the shared in-memory store and broadcasts the new device
+snapshot to connected dashboard clients.
+
+```bash
+curl -X POST http://localhost:4000/devices/drawing-fan-2/toggle \
+  -H "Content-Type: application/json" \
+  -d "{\"status\":\"on\"}"
+```
+
+```json
+{
+  "ok": true,
+  "device": {
+    "id": "drawing-fan-2",
+    "type": "fan",
+    "room": "drawing",
+    "status": "on",
+    "watts": 60,
+    "last_changed": "2026-07-03T13:20:00.000Z"
+  }
+}
+```
+
+Valid statuses are `on` and `off`.
+
+---
+
 ### `GET /rooms/:room`
 Devices for one room.  Returns **404** for unknown room names.
 
@@ -134,7 +162,8 @@ Liveness check.
 Connect to `ws://localhost:4000`.
 
 - Receive the full device list **immediately on connect**.
-- Receive the full device list again **on every simulator tick** (15–30 s).
+- Receive the full device list again **on every simulator tick** (15–30 s) and
+  after manual dashboard toggles.
 
 Message format:
 
@@ -161,7 +190,7 @@ backend/
     ├── devices.js     — 15-device seed & flipDevice() helper
     ├── simulator.js   — randomised 15–30 s flip loop
     ├── alerts.js      — pure after_hours + stuck_on rule evaluator
-    └── routes.js      — Express router factory (all read-only endpoints)
+    └── routes.js      — Express router factory (read endpoints + manual toggle)
 ```
 
 ---
@@ -175,4 +204,4 @@ backend/
   clock. If your demo machine is on a weird timezone, set the `TZ` env var
   before starting: `TZ=Asia/Dhaka npm start`
 - **Extending the simulator** — increase `MAX_FLIPS` in `simulator.js` or
-  add a `POST /devices/:id/toggle` route in `routes.js` for manual overrides.
+  add more write routes next to `POST /devices/:id/toggle` in `routes.js`.

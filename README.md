@@ -116,12 +116,13 @@ hackathon/
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/devices` | GET | All 15 device objects |
+| `/devices/:id/toggle` | POST | Update one device status (`on` or `off`) |
 | `/rooms/:room` | GET | Devices for one room (`drawing`, `work1`, `work2`) |
 | `/usage` | GET | Total watts, per-room breakdown, estimated daily kWh |
 | `/alerts` | GET | Active alerts (after-hours, stuck-on) |
 | `/health` | GET | Liveness check |
 
-**WebSocket**: Connect to `ws://localhost:4000`. Receive `{ type: "devices", devices: [...] }` on connect and on every simulator tick.
+**WebSocket**: Connect to `ws://localhost:4000`. Receive `{ type: "devices", devices: [...] }` on connect, on every simulator tick, and after dashboard manual toggles.
 
 ---
 
