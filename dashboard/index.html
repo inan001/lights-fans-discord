@@ -467,9 +467,45 @@ const simulator = (function() {
 /* ================================================================
    API / WEBSOCKET SERVICE
 ================================================================ */
+/* ── Backend ↔ Dashboard ID mapping ──────────────────────────────── */
+const ROOM_MAP = { drawing: 'Drawing Room', work1: 'Work Room 1', work2: 'Work Room 2' };
+function backendIdToDashId(bid) {
+  // "drawing-fan-1" → "drawing_room_fan_1", "work1-light-2" → "work_room_1_light_2"
+  const parts = bid.split('-'); // ["drawing","fan","1"] or ["work1","fan","1"]
+  const roomKey = parts[0];
+  const type    = parts[1];
+  const idx     = parts[2];
+  const prefix  = ROOM_MAP[roomKey].toLowerCase().replace(/\s+/g, '_');
+  return `${prefix}_${type}_${idx}`;
+}
+function mapBackendDevice(bd) {
+  const dashId   = backendIdToDashId(bd.id);
+  const roomName = ROOM_MAP[bd.room] || bd.room;
+  const ts       = new Date(bd.last_changed).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  return {
+    id:             dashId,
+    name:           `${bd.type.charAt(0).toUpperCase() + bd.type.slice(1)} ${bd.id.split('-')[2]}`,
+    room:           roomName,
+    type:           bd.type,
+    status:         bd.status,
+    power:          bd.watts,
+    lastChanged:    ts,
+    lastToggledBy:  'System'
+  };
+}
+function mapBackendAlerts(backendAlerts) {
+  return backendAlerts.map(a => ({
+    id:        a.id,
+    severity:  a.type === 'stuck_on' ? 'danger' : 'warning',
+    room:      ROOM_MAP[a.room] || a.room,
+    desc:      a.message,
+    timestamp: new Date(a.timestamp).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' })
+  }));
+}
+
 const api = (function() {
-  const WS_URL  = 'ws://localhost:8000/ws';
-  const API_URL = 'http://localhost:8000/api';
+  const WS_URL  = 'ws://localhost:4000';
+  const API_URL = 'http://localhost:4000';
   let ws = null, attempts = 0, maxAttempts = 3, manual = false;
 
   function connect() {
@@ -511,13 +547,14 @@ const api = (function() {
 
   async function fetchAll() {
     try {
-      const [devs, pwr, alerts, hist] = await Promise.all([
+      const [rawDevices, usage, rawAlerts] = await Promise.all([
         fetch(API_URL + '/devices').then(r=>r.json()),
-        fetch(API_URL + '/power').then(r=>r.json()),
+        fetch(API_URL + '/usage').then(r=>r.json()),
         fetch(API_URL + '/alerts').then(r=>r.json()),
-        fetch(API_URL + '/history').then(r=>r.json()),
       ]);
-      store.setState({ devices: devs, powerHistory: pwr, alerts, timeline: hist });
+      const devices = rawDevices.map(mapBackendDevice);
+      const alerts  = mapBackendAlerts(rawAlerts);
+      store.setState({ devices, alerts });
     } catch(e) {
       console.warn('REST fetch failed, switching to simulation.', e);
       store.setState({ connectionStatus: 'simulating' });
@@ -526,26 +563,28 @@ const api = (function() {
   }
 
   function handleMsg(payload) {
-    const { event, data } = payload;
-    if (event === 'device_updated')  store.setState(s => ({ devices: s.devices.map(d => d.id===data.id?{...d,...data}:d) }));
-    if (event === 'power_updated')   store.setState(s => { const h=[...s.powerHistory,data]; if(h.length>30)h.shift(); return {powerHistory:h}; });
-    if (event === 'alert_created')   store.setState(s => ({ alerts: [data,...s.alerts] }));
-    if (event === 'history_updated') store.setState(s => ({ timeline: [data,...s.timeline].slice(0,50) }));
-    if (event === 'connection_lost') connect();
+    // Backend sends: { type: "devices", devices: [...15 objects...] }
+    if (payload.type === 'devices' && Array.isArray(payload.devices)) {
+      const devices = payload.devices.map(mapBackendDevice);
+      store.setState({ devices });
+      // Also refresh alerts via REST since WS only pushes device snapshots
+      fetch(API_URL + '/alerts').then(r=>r.json())
+        .then(rawAlerts => store.setState({ alerts: mapBackendAlerts(rawAlerts) }))
+        .catch(() => {});
+    }
   }
 
   return {
     init() { manual = false; attempts = 0; connect(); },
+    wsUrl: WS_URL,
     toggleDevice(deviceId, status, operator) {
       const { connectionStatus } = store.getState();
       if (connectionStatus === 'simulating') {
         simulator.toggleDevice(deviceId, status, operator);
         return;
       }
-      fetch(`${API_URL}/devices/${deviceId}`, {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ status, operator })
-      }).catch(e => console.error('Toggle API error', e));
+      // Toggle via simulator fallback (backend has no toggle endpoint)
+      simulator.toggleDevice(deviceId, status, operator);
     }
   };
 })();
@@ -1225,7 +1264,7 @@ function initBanner() {
   store.subscribe(state => {
     const cs = state.connectionStatus;
     if (cs === 'simulating') {
-      el.innerHTML = `<div class="offline-banner">⚠️ Demo Simulator Mode — Backend at <b>ws://localhost:8000/ws</b> is unreachable.<button id="banner-btn">Retry Connection</button></div>`;
+      el.innerHTML = `<div class="offline-banner">⚠️ Demo Simulator Mode — Backend at <b>ws://localhost:4000</b> is unreachable.<button id="banner-btn">Retry Connection</button></div>`;
       const btn = document.getElementById('banner-btn');
       if (btn) btn.onclick = () => api.init();
     } else if (cs === 'disconnected') {

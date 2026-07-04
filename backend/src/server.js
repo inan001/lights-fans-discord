@@ -15,7 +15,7 @@
  *
  * SAMPLE CURL COMMANDS
  * --------------------
- *   # 1. All 18 devices
+ *   # 1. All 15 devices
  *   curl http://localhost:4000/devices
  *
  *   # 2. Devices in a single room
@@ -32,7 +32,7 @@
  *   Connect to ws://localhost:4000.
  *   On connect you immediately receive the current device list.
  *   The full list is pushed again on every simulator tick (15–30 s).
- *   Message shape: { "type": "devices", "devices": [ ...18 objects... ] }
+ *   Message shape: { "type": "devices", "devices": [ ...15 objects... ] }
  *
  *   Quick test:  npx wscat -c ws://localhost:4000
  */
@@ -115,7 +115,7 @@ const simulator = startSimulator(devices, (updatedDevices, flippedCount) => {
 
   console.log(
     `[sim] flipped ${flippedCount} device(s) — ` +
-    `${onCount}/18 on  alerts=${currentAlerts.length}  ws_clients=${sent}`
+    `${onCount}/15 on  alerts=${currentAlerts.length}  ws_clients=${sent}`
   );
 });
 
